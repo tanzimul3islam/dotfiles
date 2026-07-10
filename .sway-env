@@ -1,0 +1,10 @@
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=sway
+export XDG_SESSION_DESKTOP=sway
+export QT_QPA_PLATFORM=wayland
+export QT_STYLE_OVERRIDE=adwaita-dark
+export MOZ_ENABLE_WAYLAND=1
+export _JAVA_AWT_WM_NONREPARENTING=1
+export LIBSEAT_BACKEND=logind
+export CLUTTER_BACKEND=wayland
+export GDK_BACKEND=wayland

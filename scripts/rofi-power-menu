@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Power menu using Rofi
+
+chosen=$(printf "  Power Off\n  Reboot\n⏼  Sleep" | rofi -dmenu -i -p "Power" -theme-str 'listview { lines: 3; } window { width: 15em; }')
+
+case "$chosen" in
+    "  Power Off") systemctl poweroff ;;
+    "  Reboot") systemctl reboot ;;
+    "⏼  Sleep") systemctl suspend ;;
+esac

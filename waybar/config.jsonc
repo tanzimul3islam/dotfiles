@@ -1,0 +1,67 @@
+{
+  "layer": "top",
+  "position": "bottom",
+  "height": 34,
+  "margin-bottom": 0,
+  "margin-left": 0,
+  "margin-right": 0,
+  "margin-top": 0,
+
+  "modules-left": ["sway/workspaces", "sway/mode"],
+  "modules-center": [],
+  "modules-right": ["tray", "pulseaudio", "battery", "clock", "custom/power"],
+
+  "pulseaudio": {
+    "format": "{icon}  {volume}%",
+    "format-muted": "󰝟  {volume}%",
+    "format-icons": {
+      "default": ["", "", ""]
+    },
+    "scroll-step": 1,
+    "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "tooltip": false
+  },
+
+  "custom/power": {
+    "format": "⏻",
+    "tooltip": false,
+    "on-click": "/home/tanzimul/Repos/github.com/tanzimul3islam/dotfiles/scripts/rofi-power-menu"
+  },
+
+  "sway/workspaces": {
+    "all-outputs": false,
+    "format": "{name}"
+  },
+
+  "sway/mode": {
+    "format": "<span style=\"italic\">{}</span>"
+  },
+
+  "sway/window": {
+    "format": "{}",
+    "max-length": 50
+  },
+
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8,
+    "show-passive-items": false
+  },
+
+  "clock": {
+    "format": "  {:%I:%M %p}",
+    "timezone": "Asia/Dhaka"
+  },
+
+  "battery": {
+    "states": {
+      "warning": 30,
+      "critical": 15
+    },
+    "format": "{icon}  {capacity}%",
+    "format-charging": "  {capacity}%",
+    "format-plugged": "  {capacity}%",
+    "format-alt": "{icon}  {time}",
+    "format-icons": ["", "", "", "", ""]
+  }
+}

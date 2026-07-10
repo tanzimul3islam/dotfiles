@@ -1,0 +1,139 @@
+# Sway Configuration with Hyprland Keybindings
+# Fedora Atomic Sway Setup
+
+### Variables
+
+set $mod Mod4
+set $left h
+set $down j
+set $up k
+set $right l
+set $term alacritty
+set $menu rofi -show drun
+
+# Gaps and borders
+gaps inner 5
+gaps outer 0
+default_border none
+default_floating_border none
+
+### Output Configuration
+
+output * bg #282828 solid_color
+exec_always [ -f ~/Pictures/Wallpapers/wallpaper.png ] && swaymsg "output * bg ~/Pictures/Wallpapers/wallpaper.png fill"
+
+### Input Configuration
+
+input "type:keyboard" {
+    xkb_layout us
+    xkb_variant ""
+    xkb_options ""
+}
+
+### Autostart
+
+exec_always --no-startup-id dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
+exec --no-startup-id nm-applet --indicator
+
+### Keybindings
+
+# Hyprland-style core actions (Super key)
+bindsym $mod+q exec $term
+bindsym $mod+r exec $menu
+bindsym $mod+c kill
+bindsym $mod+m exec swaynag -t warning -m 'Exit Sway?' -b 'Yes' 'swaymsg exit'
+
+# Window focus (Hyprland style with arrows)
+bindsym $mod+Left focus left
+bindsym $mod+Right focus right
+bindsym $mod+Up focus up
+bindsym $mod+Down focus down
+
+# Window movement
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Right move right
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Down move down
+
+# Workspace navigation (Hyprland style with numbers)
+bindsym $mod+1 workspace number 1
+bindsym $mod+2 workspace number 2
+bindsym $mod+3 workspace number 3
+bindsym $mod+4 workspace number 4
+bindsym $mod+5 workspace number 5
+bindsym $mod+6 workspace number 6
+bindsym $mod+7 workspace number 7
+bindsym $mod+8 workspace number 8
+bindsym $mod+9 workspace number 9
+bindsym $mod+0 workspace number 10
+
+# Move window to workspace
+bindsym $mod+Shift+1 move container to workspace number 1
+bindsym $mod+Shift+2 move container to workspace number 2
+bindsym $mod+Shift+3 move container to workspace number 3
+bindsym $mod+Shift+4 move container to workspace number 4
+bindsym $mod+Shift+5 move container to workspace number 5
+bindsym $mod+Shift+6 move container to workspace number 6
+bindsym $mod+Shift+7 move container to workspace number 7
+bindsym $mod+Shift+8 move container to workspace number 8
+bindsym $mod+Shift+9 move container to workspace number 9
+bindsym $mod+Shift+0 move container to workspace number 10
+
+# Layout management
+bindsym $mod+Shift+f fullscreen toggle
+bindsym $mod+v split vertical
+bindsym $mod+h split horizontal
+bindsym $mod+Shift+e layout toggle split tabbed stacking
+
+# File manager
+bindsym $mod+e exec nautilus
+
+# Firefox
+bindsym $mod+f exec firefox
+
+# Floating windows
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space focus mode_toggle
+
+# Reload config
+bindsym $mod+Shift+c reload
+
+# Screenshare & screenshots
+bindsym $mod+s exec grim -g "$(slurp)" ~/Pictures/$(date +%Y%m%d_%H%M%S).png
+
+# Mouse wheel to change workspace (Hyprland style)
+#bindsym $mod+mouse_up workspace next
+#bindsym $mod+mouse_down workspace prev
+
+# Mouse bindings for moving/resizing
+floating_modifier $mod normal
+#bindm --release $mod+mouse:272 move
+#bindm --release $mod+mouse:273 resize:width resize:height
+
+### Bar (using waybar)
+bar {
+    swaybar_command waybar
+}
+
+### Additional Configuration
+
+# Remove title bars
+for_window [class=".*"] border none
+for_window [app_id=".*"] border none
+
+# App rules
+for_window [app_id="nm-connection-editor"] {
+    floating enable
+    resize set width 400 height 500
+    move position center
+}
+
+# Inhibit idle
+exec swayidle -w \
+    timeout 600 'swaymsg "output * power off"' \
+    resume 'swaymsg "output * power on"'
+
+# Notification daemon
+exec mako
+
+include /etc/sway/config.d/*
