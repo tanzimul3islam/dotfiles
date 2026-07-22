@@ -9,7 +9,7 @@
 
   "modules-left": ["sway/workspaces", "sway/mode"],
   "modules-center": [],
-  "modules-right": ["tray", "pulseaudio", "battery", "clock", "custom/power"],
+  "modules-right": ["network", "custom/weather", "tray", "pulseaudio", "battery", "clock", "custom/power"],
 
   "pulseaudio": {
     "format": "{icon}  {volume}%",
@@ -19,6 +19,19 @@
     },
     "scroll-step": 1,
     "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+    "tooltip": false
+  },
+
+  "custom/weather": {
+    "format": "{}",
+    "interval": 1800,
+    "exec": "curl -s 'wttr.in/Dhaka?format=%c+%t&m' 2>/dev/null || echo ' '",
+    "tooltip": false
+  },
+
+  "network": {
+    "format": "{icon}  {essid}",
+    "format-icons": ["󰤟", "󰤢", "󰤥", "󰤨"],
     "tooltip": false
   },
 

@@ -25,3 +25,6 @@ unset __conda_setup
 
 export PATH="$PATH:$HOME/flutter/bin"
 export PATH="$HOME/flutter/bin:$PATH"
+alias docker=podman
+alias docker=podman
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
