@@ -59,3 +59,9 @@ vim.keymap.set("n", "<leader>gt", "<cmd>GoTest<CR>", { desc = "Go Test" })
 -- snippets
 
 vim.keymap.set("n", "<leader>hy", "i{{< youtube id >}}<Esc>", { desc = "Hugo Youtube" })
+
+-- Disable middle-click paste (primary selection) to prevent garbage from Claude terminal
+vim.keymap.set('i', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (insert)" })
+vim.keymap.set('n', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (normal)" })
+vim.keymap.set('x', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (visual)" })
+vim.keymap.set('c', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (command)" })
