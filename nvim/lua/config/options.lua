@@ -49,14 +49,14 @@ if vim.fn.executable("wl-copy") == 1 then
   vim.g.clipboard = {
     name = "wl-clipboard",
     copy = { ["+"] = "wl-copy", ["*"] = "wl-copy" },
-    paste = { ["+"] = "wl-paste", ["*"] = "wl-paste" },
+    paste = { ["+"] = "wl-paste --no-newline | sed 's/\\x1b\\[[0-9;]*m//g'", ["*"] = "wl-paste --no-newline | sed 's/\\x1b\\[[0-9;]*m//g'" },
     cache_enabled = true,
   }
 elseif vim.fn.executable("xclip") == 1 then
   vim.g.clipboard = {
     name = "xclip",
     copy = { ["+"] = "xclip -selection clipboard", ["*"] = "xclip" },
-    paste = { ["+"] = "xclip -selection clipboard -o", ["*"] = "xclip -o" },
+    paste = { ["+"] = "xclip -selection clipboard -o | sed 's/\\x1b\\[[0-9;]*m//g'", ["*"] = "xclip -o | sed 's/\\x1b\\[[0-9;]*m//g'" },
     cache_enabled = true,
   }
 end
