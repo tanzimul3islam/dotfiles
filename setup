@@ -30,6 +30,7 @@ readonly PACKAGES=(
   "fzf"
   "git"
   "wl-clipboard"
+  "xclip"
   "jq"
   "grim"
   "slurp"
@@ -50,7 +51,10 @@ readonly PACKAGES=(
 log() { echo -e "${GREEN}[✓]${NC} $*" | tee -a "${LOG_FILE}"; }
 info() { echo -e "${BLUE}[•]${NC} $*" | tee -a "${LOG_FILE}"; }
 warn() { echo -e "${YELLOW}[!]${NC} $*" | tee -a "${LOG_FILE}"; }
-error() { echo -e "${RED}[✗]${NC} $*" | tee -a "${LOG_FILE}"; exit 1; }
+error() {
+  echo -e "${RED}[✗]${NC} $*" | tee -a "${LOG_FILE}"
+  exit 1
+}
 
 print_header() {
   echo "" | tee -a "${LOG_FILE}"
@@ -74,7 +78,7 @@ is_fedora_atomic() {
 
 check_system() {
   print_header "System Check"
-  
+
   if is_fedora_atomic; then
     log "Fedora Atomic detected"
     return 0
@@ -92,7 +96,7 @@ check_system() {
 
 install_packages() {
   print_header "Installing Packages"
-  
+
   if ! is_fedora_atomic; then
     warn "Skipping package installation (not on Fedora Atomic)"
     warn "Run on host Fedora Atomic system to install packages:"
@@ -139,7 +143,7 @@ install_packages() {
     if rpm -q "${package}" &>/dev/null; then
       info "Already installed: ${package}"
     else
-      sudo rpm-ostree install --assumeyes --allow-inactive "${package}" || \
+      sudo rpm-ostree install --assumeyes --allow-inactive "${package}" ||
         warn "Failed to install: ${package} (may already be requested)"
     fi
   done
@@ -149,15 +153,15 @@ install_packages() {
 
 remove_default_filemanager() {
   print_header "Removing Default File Manager (Thunar)"
-  
+
   if ! is_fedora_atomic; then
     warn "Skipping (not on Fedora Atomic)"
     return 0
   fi
-  
+
   if rpm -q Thunar &>/dev/null; then
     info "Thunar detected, removing..."
-    sudo rpm-ostree override remove Thunar thunar-archive-plugin || \
+    sudo rpm-ostree override remove Thunar thunar-archive-plugin ||
       warn "Failed to remove Thunar"
     log "Thunar removal staged (requires reboot)"
   else
@@ -171,7 +175,7 @@ remove_default_filemanager() {
 
 create_directories() {
   print_header "Creating Configuration Directories"
-  
+
   local dirs=(
     "${XDG_CONFIG_HOME}/sway"
     "${XDG_CONFIG_HOME}/alacritty"
@@ -181,11 +185,16 @@ create_directories() {
     "${XDG_CONFIG_HOME}/rofi"
     "${XDG_DATA_HOME}/nvim"
   )
-  
+
   for dir in "${dirs[@]}"; do
     mkdir -p "${dir}"
     log "Created: ${dir}"
   done
+
+  if [[ ! -d "${XDG_CONFIG_HOME}/alacritty/themes/.git" ]]; then
+    git clone https://github.com/alacritty/alacritty-theme "${XDG_CONFIG_HOME}/alacritty/themes"
+    info "Cloned alacritty-theme into ${XDG_CONFIG_HOME}/alacritty/themes"
+  fi
 }
 
 # ============================================================================
@@ -195,9 +204,12 @@ create_directories() {
 create_symlink() {
   local source="$1"
   local target="$2"
-  
-  [[ ! -e "${source}" ]] && { warn "Source missing: ${source}"; return 1; }
-  
+
+  [[ ! -e "${source}" ]] && {
+    warn "Source missing: ${source}"
+    return 1
+  }
+
   if [[ -L "${target}" ]]; then
     rm "${target}"
     info "Removed old symlink: ${target}"
@@ -205,17 +217,18 @@ create_symlink() {
     rmdir "${target}"
     info "Removed empty directory: ${target}"
   elif [[ -e "${target}" ]]; then
-    warn "Target exists, skipping: ${target}"
-    return 1
+    local backup="${target}.bak.$(date +%Y%m%d%H%M%S)"
+    mv "${target}" "${backup}"
+    warn "Existing target backed up: ${target} -> ${backup}"
   fi
-  
+
   ln -s "${source}" "${target}"
   log "Symlinked: $(basename ${target})"
 }
 
 setup_symlinks() {
   print_header "Creating Configuration Symlinks"
-  
+
   create_symlink "${DOTFILES_DIR}/sway/config" "${XDG_CONFIG_HOME}/sway/config" || true
   create_symlink "${DOTFILES_DIR}/alacritty.toml" "${XDG_CONFIG_HOME}/alacritty/alacritty.toml" || true
   create_symlink "${DOTFILES_DIR}/waybar/config.jsonc" "${XDG_CONFIG_HOME}/waybar/config" || true
@@ -223,7 +236,7 @@ setup_symlinks() {
   create_symlink "${DOTFILES_DIR}/k9s/skin.yml" "${XDG_CONFIG_HOME}/k9s/skin.yml" || true
   create_symlink "${DOTFILES_DIR}/rofi/config.rasi" "${XDG_CONFIG_HOME}/rofi/config.rasi" || true
   create_symlink "${DOTFILES_DIR}/nvim" "${XDG_CONFIG_HOME}/nvim" || true
-  
+
   create_symlink "${DOTFILES_DIR}/.tmux.conf" "${HOME}/.tmux.conf" || true
   create_symlink "${DOTFILES_DIR}/.zshrc" "${HOME}/.zshrc" || true
   create_symlink "${DOTFILES_DIR}/.bashrc" "${HOME}/.bashrc" || true
@@ -236,19 +249,19 @@ setup_symlinks() {
 
 setup_sway_config() {
   print_header "Configuring Sway"
-  
+
   local sway_config="${XDG_CONFIG_HOME}/sway/config"
 
   if [[ -f "${sway_config}" ]]; then
     sed -i --follow-symlinks 's|bindsym \$mod+e exec flatpak run org\.gnome\.Nautilus|bindsym $mod+e exec nautilus|' "${sway_config}"
     sed -i --follow-symlinks '/swaylock -f -c 282828/d' "${sway_config}"
   fi
-  
+
   if ! grep -q "waybar" "${sway_config}"; then
-    echo "exec_always --no-startup-id waybar" >> "${sway_config}"
+    echo "exec_always --no-startup-id waybar" >>"${sway_config}"
     log "Added waybar autostart"
   fi
-  
+
   log "Sway configuration ready"
 }
 
@@ -258,10 +271,10 @@ setup_sway_config() {
 
 setup_environment() {
   print_header "Setting Up Environment"
-  
+
   local env_file="${HOME}/.sway-env"
-  
-  cat > "${env_file}" << 'EOF'
+
+  cat >"${env_file}" <<'EOF'
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=sway
 export XDG_SESSION_DESKTOP=sway
@@ -273,11 +286,11 @@ export LIBSEAT_BACKEND=logind
 export CLUTTER_BACKEND=wayland
 export GDK_BACKEND=wayland
 EOF
-  
+
   for shell_rc in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
     [[ ! -f "${shell_rc}" ]] && continue
     if ! grep -q ".sway-env" "${shell_rc}" 2>/dev/null; then
-      echo "source ~/.sway-env 2>/dev/null || true" >> "${shell_rc}"
+      echo "source ~/.sway-env 2>/dev/null || true" >>"${shell_rc}"
       log "Added environment source to $(basename ${shell_rc})"
     fi
   done
@@ -285,13 +298,13 @@ EOF
 
 setup_services() {
   print_header "Setting Up Services"
-  
+
   if ! is_fedora_atomic; then
     warn "On a non-atomic system, you can enable sddm with 'sudo systemctl enable --force sddm.service'"
     return 0
   fi
-  
-  # On Fedora Atomic, service changes should usually happen on the host. 
+
+  # On Fedora Atomic, service changes should usually happen on the host.
   # But we can try to enable it if the service already exists from a previous ostree commit.
   if systemctl list-unit-files | grep -q "^sddm.service"; then
     sudo systemctl enable --force sddm.service || warn "Could not enable SDDM."
@@ -321,20 +334,20 @@ setup_sddm_theme() {
   log "Cloning SilentSDDM repository..."
   rm -rf "${tmp_dir}"
   git clone -b main --depth=1 https://github.com/uiriansan/SilentSDDM "${tmp_dir}"
-  
+
   log "Copying theme files..."
   sudo mkdir -p "${themes_dir}/${theme_name}"
   sudo cp -rf "${tmp_dir}"/. "${themes_dir}/${theme_name}/"
-  
+
   log "Copying fonts..."
   sudo mkdir -p /usr/local/share/fonts
   sudo cp -r "${tmp_dir}/fonts/"* /usr/local/share/fonts/
-  
+
   log "Configuring SDDM..."
   sudo mkdir -p /etc/sddm.conf.d
   local sddm_conf="/etc/sddm.conf.d/silent.conf"
-  
-  cat <<EOF | sudo tee "${sddm_conf}" > /dev/null
+
+  cat <<EOF | sudo tee "${sddm_conf}" >/dev/null
 [Theme]
 Current=silent
 ThemeDir=${themes_dir}
@@ -354,18 +367,18 @@ EOF
 
 setup_theme() {
   print_header "Setting Up Gruvbox Theme"
-  
+
   local gtk_settings="${XDG_CONFIG_HOME}/gtk-3.0/settings.ini"
   mkdir -p "$(dirname ${gtk_settings})"
-  
-  cat > "${gtk_settings}" << 'EOF'
+
+  cat >"${gtk_settings}" <<'EOF'
 [Settings]
 gtk-theme-name=Adwaita-dark
 gtk-icon-theme-name=Adwaita
 gtk-application-prefer-dark-theme=true
 gtk-font-name=UbuntuMono Nerd Font 10
 EOF
-  
+
   log "Configured GTK theme"
 }
 
@@ -375,16 +388,16 @@ EOF
 
 setup_fonts() {
   print_header "Setting Up Fonts"
-  
+
   local fonts_dir="${XDG_DATA_HOME}/fonts"
   mkdir -p "${fonts_dir}"
-  
+
   if [[ -d "${DOTFILES_DIR}/fonts" ]]; then
     cp -r "${DOTFILES_DIR}/fonts"/* "${fonts_dir}/" 2>/dev/null || true
     log "Copied fonts from dotfiles"
   fi
-  
-  fc-cache -fv > /dev/null 2>&1 || warn "Font cache may need manual refresh"
+
+  fc-cache -fv >/dev/null 2>&1 || warn "Font cache may need manual refresh"
   log "Font cache rebuilt"
 }
 
@@ -394,7 +407,7 @@ setup_fonts() {
 
 verify_setup() {
   print_header "Verifying Installation"
-  
+
   local apps=("sway" "waybar" "alacritty" "k9s" "rofi" "nvim")
   local configs=(
     "${XDG_CONFIG_HOME}/sway/config"
@@ -403,15 +416,15 @@ verify_setup() {
     "${XDG_CONFIG_HOME}/waybar/config"
     "${XDG_CONFIG_HOME}/rofi/config.rasi"
   )
-  
+
   for app in "${apps[@]}"; do
-    if command -v "${app}" &> /dev/null; then
+    if command -v "${app}" &>/dev/null; then
       log "${app} installed"
     else
       warn "${app} not found"
     fi
   done
-  
+
   for config in "${configs[@]}"; do
     if [[ -e "${config}" ]]; then
       log "Config: $(basename ${config})"
@@ -426,7 +439,7 @@ verify_setup() {
 # ============================================================================
 
 print_summary() {
-  cat << EOF
+  cat <<EOF
 
 ${GREEN}═══════════════════════════════════════${NC}
 ${GREEN}  Sway Setup Complete!${NC}
@@ -461,7 +474,7 @@ EOF
 
 main() {
   print_header "Sway Setup - Fedora Atomic"
-  
+
   check_system || true
   remove_default_filemanager || true
   install_packages || true
@@ -475,7 +488,7 @@ main() {
   setup_fonts || true
   verify_setup || true
   print_summary
-  
+
   log "Setup complete!"
 }
 

@@ -61,7 +61,7 @@ path=(
     $HOME/bin
     $HOME/.local/bin
     $HOME/dotnet
-    /home/linuxbrew/.linuxbrew/opt/dotnet@8/bin # Dotnet for dev container
+    # /home/linuxbrew/.linuxbrew/opt/dotnet@8/bin # Dotnet for dev container
     $SCRIPTS
     $HOME/.krew/bin
     $HOME/.rd/bin                   # Rancher Desktop
@@ -79,9 +79,9 @@ export PATH
 # ~~~~~~~~~~~~~~~ Dev Container Specifics ~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-if [ -d "/home/linuxbrew/.linuxbrew" ]; then
-     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-fi
+# if [ -d "/home/linuxbrew/.linuxbrew" ]; then
+#      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# fi
 
 
 # ~~~~~~~~~~~~~~~ History ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,3 +215,5 @@ fpath+=~/.zfunc; autoload -Uz compinit; compinit
 source ~/.sway-env 2>/dev/null || true
 
 [ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X" # boot up x-cmd.
+alias fix-clipboard='sudo chcon -t container_file_t /run/user/1000/wayland-1'
+alias fix-clipboard='sudo chcon -t container_file_t /run/user/1000/wayland-1'
