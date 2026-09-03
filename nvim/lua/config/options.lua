@@ -43,6 +43,24 @@ vim.g.lazygit_config = false
 
 vim.g.snacks_animate = false
 
+-- Clipboard configuration to prevent garbage values on paste
+opt.clipboard = "unnamedplus" -- Use system clipboard
+if vim.fn.executable("wl-copy") == 1 then
+  vim.g.clipboard = {
+    name = "wl-clipboard",
+    copy = { ["+"] = "wl-copy", ["*"] = "wl-copy" },
+    paste = { ["+"] = "wl-paste", ["*"] = "wl-paste" },
+    cache_enabled = true,
+  }
+elseif vim.fn.executable("xclip") == 1 then
+  vim.g.clipboard = {
+    name = "xclip",
+    copy = { ["+"] = "xclip -selection clipboard", ["*"] = "xclip" },
+    paste = { ["+"] = "xclip -selection clipboard -o", ["*"] = "xclip -o" },
+    cache_enabled = true,
+  }
+end
+
 vim.filetype.add({
   extension = {
     tf = "terraform",
