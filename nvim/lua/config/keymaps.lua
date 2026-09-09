@@ -65,3 +65,9 @@ vim.keymap.set('i', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click pas
 vim.keymap.set('n', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (normal)" })
 vim.keymap.set('x', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (visual)" })
 vim.keymap.set('c', '<MiddleMouse>', '<Nop>', { desc = "Disable middle-click paste (command)" })
+
+-- Explicit system-clipboard mappings (y/p already sync via clipboard=unnamedplus)
+vim.keymap.set({ "n", "x" }, "<leader>cy", '"+y', { desc = "Copy to system clipboard" })
+vim.keymap.set("n", "<leader>cY", '"+Y', { desc = "Copy line to system clipboard" })
+vim.keymap.set({ "n", "x" }, "<leader>cp", '"+p', { desc = "Paste from system clipboard" })
+vim.keymap.set({ "n", "x" }, "<leader>cP", '"+P', { desc = "Paste before from system clipboard" })

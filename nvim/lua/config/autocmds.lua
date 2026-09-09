@@ -74,3 +74,16 @@ vim.api.nvim_create_autocmd("filetype", {
   pattern = { "go" },
   command = 'lua require("cmp").setup { enabled = true }',
 })
+
+-- Fix Claude terminal copy/paste issues by disabling OSC 52 handling in terminal buffers
+vim.api.nvim_create_autocmd("TermOpen", {
+  pattern = "*",
+  callback = function()
+    -- Set terminal options to prevent mouse/clipboard conflicts
+    vim.opt_local.mouse = "a"
+    vim.opt_local.number = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.signcolumn = "no"
+  end,
+  desc = "Configure terminal buffers to avoid clipboard conflicts",
+})

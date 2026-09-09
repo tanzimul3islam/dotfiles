@@ -43,23 +43,41 @@ vim.g.lazygit_config = false
 
 vim.g.snacks_animate = false
 
--- Clipboard configuration to prevent garbage values on paste
-opt.clipboard = "unnamedplus" -- Use system clipboard
-if vim.fn.executable("wl-copy") == 1 then
-  vim.g.clipboard = {
-    name = "wl-clipboard",
-    copy = { ["+"] = "wl-copy", ["*"] = "wl-copy" },
-    paste = { ["+"] = "wl-paste --no-newline | sed 's/\\x1b\\]52[^\\x07]*\\x07//g; s/\\x1b\\[[0-9;]*m//g'", ["*"] = "wl-paste --no-newline | sed 's/\\x1b\\]52[^\\x07]*\\x07//g; s/\\x1b\\[[0-9;]*m//g'" },
-    cache_enabled = true,
-  }
-elseif vim.fn.executable("xclip") == 1 then
-  vim.g.clipboard = {
-    name = "xclip",
-    copy = { ["+"] = "xclip -selection clipboard", ["*"] = "xclip" },
-    paste = { ["+"] = "xclip -selection clipboard -o | sed 's/\\x1b\\]52[^\\x07]*\\x07//g; s/\\x1b\\[[0-9;]*m//g'", ["*"] = "xclip -o | sed 's/\\x1b\\]52[^\\x07]*\\x07//g; s/\\x1b\\[[0-9;]*m//g'" },
-    cache_enabled = true,
-  }
+-- Pin the clipboard provider to wl-clipboard so Neovim never falls back to
+-- OSC 52 (which corrupts copy/paste inside the Claude terminal). With an
+-- explicit provider, unnamedplus is safe: y/p go straight to wl-copy/wl-paste.
+opt.clipboard = "unnamedplus"
+
+-- Scrub escape sequences out of pasted text (ANSI colors, OSC 52 clipboard
+-- codes) while keeping tab and newline, so multi-line pastes survive intact.
+local function scrub(text)
+  text = text:gsub("\27%][0-9]*;.-\7", "") -- OSC ... BEL
+  text = text:gsub("\27%][0-9]*;.-\27\\", "") -- OSC ... ST
+  text = text:gsub("\27%[[0-9;?]*[a-zA-Z]", "") -- CSI (colors, cursor moves)
+  text = text:gsub("[%z\1-\8\11-\31\127]", "") -- leftover control chars
+  return text
 end
+
+local function wl_paste()
+  local out = vim.fn.system({ "wl-paste", "--no-newline" })
+  if vim.v.shell_error ~= 0 then
+    return { "" }
+  end
+  return vim.split(scrub(out), "\n")
+end
+
+vim.g.clipboard = {
+  name = "wl-clipboard-no-osc52",
+  copy = {
+    ["+"] = { "wl-copy" },
+    ["*"] = { "wl-copy" },
+  },
+  paste = {
+    ["+"] = wl_paste,
+    ["*"] = wl_paste,
+  },
+  cache_enabled = true,
+}
 
 vim.filetype.add({
   extension = {
