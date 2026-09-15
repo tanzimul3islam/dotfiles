@@ -1,12 +1,17 @@
--- Python LSP tuning. Requires the `lang.python` LazyVim extra (:LazyExtras),
--- which installs basedpyright + ruff via Mason. basedpyright is what answers
--- textDocument/references, so `grr` depends on it; ruff does not implement it.
+-- Python LSP tuning. basedpyright is what answers textDocument/references, so
+-- `grr` depends on it; ruff does not implement it.
+--
+-- basedpyright comes from npm via mise (`npm:basedpyright` in
+-- ~/.config/mise/config.toml), not Mason: Mason's pip install bakes one
+-- machine's Python into its venv, which breaks across the shared home of the
+-- Fedora host and Ubuntu distroboxes.
 return {
   {
     "neovim/nvim-lspconfig",
     opts = {
       servers = {
         basedpyright = {
+          mason = false,
           settings = {
             python = {
               -- No project venv; fall back to the conda interpreter that
