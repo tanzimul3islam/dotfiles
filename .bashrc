@@ -3,7 +3,6 @@ export PATH="/Users/tanzimul/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 source ~/.sway-env 2>/dev/null || true
 
-
 [ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X" # boot up x-cmd.
 
 # >>> conda initialize >>>
@@ -21,8 +20,4 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-export PATH="$PATH:$HOME/flutter/bin"
-export PATH="$HOME/flutter/bin:$PATH"
-alias docker=podman
-alias docker=podman
 alias fix-clipboard='sudo chcon -t container_file_t /run/user/1000/wayland-1'
