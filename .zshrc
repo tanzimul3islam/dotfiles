@@ -1,219 +1,184 @@
-# ~~~~~~~~~~~~~~~ SSH ~~~~~~~~~~~~~~~~~~~~~~~~
+# ~/.zshrc — Fedora Atomic + Sway workstation
+# Symlinked from $DOTFILES/.zshrc by ./setup
 
+# ~~~~~~~~~~~~~~~ Environment ~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Using GPG + YubiKey for ssh.
-# Don't execute when in dev container
-
-
-if [[ -z "$REMOTE_CONTAINERS" && -z "$CODESPACES" && -z "$DEVCONTAINER_TYPE" ]]; then
-  export GPG_TTY="$(tty)"
-  unset SSH_AGENT_PID
-
-  if [ "${gnupg_SSH_AUTH_SOCK_by:-0}" -ne $$ ]; then
-  export SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null)"
-  fi
-
-  gpgconf --launch gpg-agent > /dev/null 2>&1
-  gpg-connect-agent updatestartuptty /bye > /dev/null 2>&1
-
-fi
-
-
-# ~~~~~~~~~~~~~~~ Environment Variables ~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-# Set to superior editing mode
-
-set -o vi
-
-export VISUAL=nvim
 export EDITOR=nvim
-export TERM="tmux-256color"
-
-export BROWSER="firefox"
-
-# Directories
+export VISUAL=nvim
+export BROWSER=firefox
 
 export REPOS="$HOME/Repos"
 export GITUSER="tanzimul3islam"
 export GHREPOS="$REPOS/github.com/$GITUSER"
 export DOTFILES="$GHREPOS/dotfiles"
-export LAB="$GHREPOS/lab"
 export SCRIPTS="$DOTFILES/scripts"
-export ICLOUD="$HOME/icloud"
-export ZETTELKASTEN="$HOME/Zettelkasten"
+export ZETTELKASTEN="$HOME/Zettelkasten" # used by scripts/zet, zkcount, ...
 
-# Go related. In general all executables and scripts go in .local/bin
+source ~/.sway-env 2>/dev/null || true
 
-export GOBIN="$HOME/.local/bin"
-export GOPRIVATE="github.com/$GITUSER/*,gitlab.com/$GITUSER/*"
-# export GOPATH="$HOME/.local/share/go"
-export GOPATH="$HOME/go/"
+# ~~~~~~~~~~~~~~~ Path ~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-# ~~~~~~~~~~~~~~~ Path configuration ~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-setopt extended_glob null_glob
-
+typeset -U path # dedupe
 path=(
-    $path                           # Keep existing PATH entries
-    $HOME/bin
-    $HOME/.local/bin
-    $HOME/dotnet
-    # /home/linuxbrew/.linuxbrew/opt/dotnet@8/bin # Dotnet for dev container
-    $SCRIPTS
-    $HOME/.krew/bin
-    $HOME/.rd/bin                   # Rancher Desktop
-    /home/vscode/.local/bin         # Dev Container Specifics
-    /root/.local/bin                # Dev Container Specifics
+  $HOME/.local/bin
+  $SCRIPTS
+  $path
 )
-
-# Remove duplicate entries and non-existent directories
-typeset -U path
-path=($^path(N-/))
-
+path=($^path(N-/)) # drop directories that don't exist
 export PATH
 
-
-# ~~~~~~~~~~~~~~~ Dev Container Specifics ~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-# if [ -d "/home/linuxbrew/.linuxbrew" ]; then
-#      eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-# fi
-
+# Generated completions live here. Added to fpath early because x-cmd runs
+# compinit itself during boot, and that dump must already include this dir.
+ZSH_COMPLETION_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/completions"
+mkdir -p "$ZSH_COMPLETION_CACHE"
+fpath=("$ZSH_COMPLETION_CACHE" $fpath)
 
 # ~~~~~~~~~~~~~~~ History ~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 HISTFILE=~/.zsh_history
 HISTSIZE=100000
 SAVEHIST=100000
 
-setopt HIST_IGNORE_SPACE  # Don't save when prefixed with space
-setopt HIST_IGNORE_DUPS   # Don't save duplicate lines
-setopt SHARE_HISTORY      # Share history between sessions
+setopt EXTENDED_HISTORY     # save timestamps
+setopt SHARE_HISTORY        # share across sessions
+setopt HIST_IGNORE_SPACE    # skip commands prefixed with a space
+setopt HIST_IGNORE_ALL_DUPS # keep only the newest duplicate
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY          # show !! expansion before running
 
+# ~~~~~~~~~~~~~~~ Options ~~~~~~~~~~~~~~~~~~~~~~~~
 
+setopt AUTO_CD              # `dir` alone cds into it
+setopt INTERACTIVE_COMMENTS
+setopt NO_BEEP
 
+# ~~~~~~~~~~~~~~~ Vi mode ~~~~~~~~~~~~~~~~~~~~~~~~
 
+bindkey -v
+export KEYTIMEOUT=1 # fast Esc into normal mode
 
+bindkey '^R' history-incremental-search-backward
+bindkey '^P' up-line-or-search
+bindkey '^N' down-line-or-search
+bindkey '^?' backward-delete-char # backspace past insert point
+bindkey '^W' backward-kill-word
 
-# ~~~~~~~~~~~~~~~ Aliases ~~~~~~~~~~~~~~~~~~~~~~~~
+# Edit the current command in $EDITOR with `v` in normal mode
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
 
+# ~~~~~~~~~~~~~~~ Tool init ~~~~~~~~~~~~~~~~~~~~~~~~
 
-alias v=nvim
+# x-cmd (provides az, terraform, minikube, miniconda)
+[ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X"
 
-alias scripts='cd $SCRIPTS'
-alias cdblog="cd ~/websites/blog"
-alias c="clear"
-alias icloud="cd \$ICLOUD"
+# mise (java, starship)
+(( $+commands[mise] )) && eval "$(mise activate zsh)"
 
-# Repos
-
-alias lab='cd $LAB'
-alias dot='cd ~/Repos/github.com/tanzimul3islam/dotfiles/'
-alias repos='cd $REPOS'
-alias ghrepos='cd $GHREPOS'
-alias gr='ghrepos'
-alias cdgo='cd $GHREPOS/go/'
-alias rob='cd $REPOS/github.com/rwxrob'
-alias vim='cd ~/Repos/github.com/tanzimul3islam/dotfiles/nvim/'
-
-
-# ls
-
-alias ls='ls --color=auto'
-alias la='ls -lathr'
-# alias la='exa -laghm@ --all --icons --git --color=always'
-
-
-# finds all files recursively and sorts by last modification, ignore hidden files
-alias lastmod='find . -type f -not -path "*/\.*" -exec ls -lrt {} +'
-
-alias t='tmux'
-alias e='exit'
-
-alias syu='sudo pacman -Syu'
-
-# Azure
-
-alias sub='az account set -s'
-
-# Git
-
-alias gp='git pull'
-alias gs='git status'
-alias lg='lazygit'
-
-
-# Zettelkasten
-
-alias in="cd \$ZETTELKASTEN/0\ Inbox/"
-alias cdzk="cd \$ZETTELKASTEN"
-
-
-# Kubernetes
-
-alias k='kubectl'
-
-alias kgp='kubectl get pods'
-alias kc='kubectx'
-alias kn='kubens'
-
-alias fgk='flux get kustomizations'
-
-# Pass
-
-alias pc='pass show -c'
-
-# Devpod
-
-alias ds='devpod ssh'
-
-# Bluetooth
-
-# Airpods Max
-alias btm='bluetoothctl connect 08:FF:44:0E:EA:D6'
-
-# Airpods
-alias bta='bluetoothctl connect 08:65:18:78:BD:A6'
+# conda (miniconda installed through x-cmd)
+__conda_root="$HOME/.x-cmd.root/local/data/pkg/sphere/X/tree.linux.x64.0/miniconda/v3.10.0+23.9.0-0"
+if [[ -x "$__conda_root/bin/conda" ]]; then
+  __conda_setup="$("$__conda_root/bin/conda" shell.zsh hook 2>/dev/null)"
+  if [[ $? -eq 0 ]]; then
+    eval "$__conda_setup"
+  elif [[ -f "$__conda_root/etc/profile.d/conda.sh" ]]; then
+    . "$__conda_root/etc/profile.d/conda.sh"
+  else
+    path=("$__conda_root/bin" $path)
+  fi
+fi
+unset __conda_root __conda_setup
 
 # ~~~~~~~~~~~~~~~ Completion ~~~~~~~~~~~~~~~~~~~~~~~~
 
+# Cache generated completions; regenerate when the binary is newer than the cache.
+_zcomp_changed=0
+_cache_completion() {
+  local cmd=$1; shift
+  (( $+commands[$cmd] )) || return 0
+  local file="$ZSH_COMPLETION_CACHE/_$cmd"
+  if [[ ! -s $file || ${commands[$cmd]:A} -nt $file ]]; then
+    "$@" >| "$file" 2>/dev/null && _zcomp_changed=1
+  fi
+}
+_cache_completion kubectl  kubectl completion zsh
+_cache_completion helm     helm completion zsh
+_cache_completion minikube minikube completion zsh
+_cache_completion devpod   devpod completion zsh
+_cache_completion mise     mise completion zsh
+_cache_completion starship starship completions zsh
+unfunction _cache_completion
 
-fpath+=~/.zfunc
-
-if type brew &>/dev/null; then
-    FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
-fi
-
+zmodload zsh/complist
 autoload -Uz compinit
-compinit -u
+# x-cmd usually ran compinit already; only (re)run it if it didn't, or if a
+# completion was just generated (compinit rebuilds the dump when files change).
+if (( ! $+functions[compdef] || _zcomp_changed )); then
+  compinit
+fi
+unset _zcomp_changed
 
 zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' # case-insensitive, fuzzy on . _ -
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*:descriptions' format '%F{yellow}-- %d --%f'
+zstyle ':completion:*' squeeze-slashes true
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompcache"
+setopt COMPLETE_IN_WORD
+setopt ALWAYS_TO_END
 
+# Navigate the completion menu with vi keys
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+bindkey '^[[Z' reverse-menu-complete # Shift+Tab
 
-# Example to install completion:
-# talosctl completion zsh > ~/.zfunc/_talosctl
+# fzf: Ctrl-T files, Alt-C cd, Ctrl-R fuzzy history (overrides the ^R above)
+(( $+commands[fzf] )) && source <(fzf --zsh)
 
+# ~~~~~~~~~~~~~~~ Aliases ~~~~~~~~~~~~~~~~~~~~~~~~
 
-# ~~~~~~~~~~~~~~~ Sourcing ~~~~~~~~~~~~~~~~~~~~~~~~
+alias v=nvim
+alias t=tmux
+alias c=clear
+alias e=exit
 
+alias ls='ls --color=auto'
+alias la='ls -lathr'
+alias grep='grep --color=auto'
 
-# source "$HOME/.privaterc"
-# source <(fzf --zsh)
-#
-# eval "$(direnv hook zsh)"
+alias dot='cd $DOTFILES'
+alias scripts='cd $SCRIPTS'
+alias repos='cd $REPOS'
+alias ghrepos='cd $GHREPOS'
+alias gr=ghrepos
 
-# ~~~~~~~~~~~~~~~ Misc ~~~~~~~~~~~~~~~~~~~~~~~~
+alias gs='git status'
+alias gp='git pull'
 
+alias k=kubectl
+alias kgp='kubectl get pods'
 
+alias sub='az account set -s'
+alias ds='devpod ssh'
 
-fpath+=~/.zfunc; autoload -Uz compinit; compinit
-source ~/.sway-env 2>/dev/null || true
-
-[ ! -f "$HOME/.x-cmd.root/X" ] || . "$HOME/.x-cmd.root/X" # boot up x-cmd.
 alias fix-clipboard='sudo chcon -t container_file_t /run/user/1000/wayland-1'
-alias fix-clipboard='sudo chcon -t container_file_t /run/user/1000/wayland-1'
+
+# ~~~~~~~~~~~~~~~ Plugins (optional) ~~~~~~~~~~~~~~~~~~~~~~~~
+
+# sudo rpm-ostree install zsh-autosuggestions zsh-syntax-highlighting
+[[ -f /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] &&
+  source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# ~~~~~~~~~~~~~~~ Prompt ~~~~~~~~~~~~~~~~~~~~~~~~
+
+# Starship with the Pure preset ($DOTFILES/starship.toml -> ~/.config/starship.toml)
+(( $+commands[starship] )) && eval "$(starship init zsh)"
+
+# Syntax highlighting must be sourced last
+[[ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] &&
+  source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

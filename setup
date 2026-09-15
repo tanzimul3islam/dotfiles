@@ -24,6 +24,9 @@ readonly PACKAGES=(
   "k9s"
   "rofi"
   "tmux"
+  "zsh"
+  "zsh-autosuggestions"
+  "zsh-syntax-highlighting"
   "neovim"
   "ripgrep"
   "fd-find"
@@ -236,6 +239,7 @@ setup_symlinks() {
   create_symlink "${DOTFILES_DIR}/k9s/skin.yml" "${XDG_CONFIG_HOME}/k9s/skin.yml" || true
   create_symlink "${DOTFILES_DIR}/rofi/config.rasi" "${XDG_CONFIG_HOME}/rofi/config.rasi" || true
   create_symlink "${DOTFILES_DIR}/nvim" "${XDG_CONFIG_HOME}/nvim" || true
+  create_symlink "${DOTFILES_DIR}/starship.toml" "${XDG_CONFIG_HOME}/starship.toml" || true
 
   create_symlink "${DOTFILES_DIR}/.tmux.conf" "${HOME}/.tmux.conf" || true
   create_symlink "${DOTFILES_DIR}/.zshrc" "${HOME}/.zshrc" || true
