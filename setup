@@ -47,6 +47,24 @@ readonly PACKAGES=(
   "qt6-qtmultimedia"
 )
 
+# CLI-only packages for distrobox/toolbox containers (Ubuntu/Debian images).
+# neovim, fzf and k9s come from mise instead: apt's versions are too old.
+readonly APT_PACKAGES=(
+  "zsh"
+  "zsh-autosuggestions"
+  "zsh-syntax-highlighting"
+  "tmux"
+  "git"
+  "curl"
+  "unzip"
+  "ripgrep"
+  "fd-find"
+  "jq"
+  "wl-clipboard"
+  "xclip"
+  "build-essential"
+)
+
 # ============================================================================
 # Utility Functions
 # ============================================================================
@@ -77,6 +95,10 @@ is_fedora_atomic() {
   # shellcheck disable=SC1091
   . /etc/os-release
   [[ "${VARIANT_ID:-}" =~ ^(silverblue|kinoite|sericea|sway-atomic)$ ]]
+}
+
+is_container() {
+  [[ -f /run/.containerenv || -f /run/.toolboxenv ]]
 }
 
 check_system() {
@@ -225,6 +247,7 @@ create_symlink() {
     warn "Existing target backed up: ${target} -> ${backup}"
   fi
 
+  mkdir -p "$(dirname "${target}")"
   ln -s "${source}" "${target}"
   log "Symlinked: $(basename ${target})"
 }
@@ -439,6 +462,120 @@ verify_setup() {
 }
 
 # ============================================================================
+# Distrobox (container) Setup
+# ============================================================================
+
+install_apt_packages() {
+  print_header "Installing Packages (apt)"
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    warn "apt-get not found - install manually: ${APT_PACKAGES[*]}"
+    return 0
+  fi
+
+  sudo apt-get update || warn "apt-get update failed"
+  sudo apt-get install -y "${APT_PACKAGES[@]}" || {
+    warn "apt-get install failed"
+    return 1
+  }
+
+  # Ubuntu ships fd as `fdfind`. Link it inside the container only; ~/.local/bin
+  # is shared with the host.
+  if [[ -x /usr/bin/fdfind && ! -e /usr/local/bin/fd ]]; then
+    sudo ln -s /usr/bin/fdfind /usr/local/bin/fd
+    log "Linked fdfind -> /usr/local/bin/fd"
+  fi
+
+  log "Package installation complete"
+}
+
+setup_mise_system_tools() {
+  print_header "Installing neovim, fzf, k9s (mise)"
+
+  local mise_bin
+  mise_bin="$(command -v mise || echo "${HOME}/.local/bin/mise")"
+  if [[ ! -x "${mise_bin}" ]]; then
+    warn "mise not found - install it: curl https://mise.run | sh"
+    return 0
+  fi
+
+  # /etc/mise is the system config: it exists only in this container, so the
+  # host's ~/.config/mise/config.toml is left alone.
+  sudo mkdir -p /etc/mise &&
+    sudo tee /etc/mise/config.toml >/dev/null <<'EOF' || {
+[tools]
+neovim = "latest"
+fzf = "latest"
+k9s = "latest"
+EOF
+    warn "Could not write /etc/mise/config.toml"
+    return 1
+  }
+  log "Wrote /etc/mise/config.toml"
+
+  (cd "${HOME}" && "${mise_bin}" install) || warn "mise install failed"
+}
+
+set_login_shell() {
+  print_header "Setting Login Shell"
+
+  local zsh_bin
+  zsh_bin="$(command -v zsh)" || {
+    warn "zsh not installed"
+    return 0
+  }
+
+  if [[ "$(getent passwd "${USER}" | cut -d: -f7)" == "${zsh_bin}" ]]; then
+    log "Login shell already ${zsh_bin}"
+    return 0
+  fi
+
+  sudo usermod -s "${zsh_bin}" "${USER}" || {
+    warn "Could not change login shell"
+    return 1
+  }
+  log "Login shell set to ${zsh_bin} (re-enter the box to use it)"
+}
+
+verify_distrobox() {
+  print_header "Verifying Installation"
+
+  local mise_bin
+  mise_bin="$(command -v mise || echo "${HOME}/.local/bin/mise")"
+
+  local tool
+  for tool in zsh tmux git rg fd jq wl-copy nvim fzf k9s starship; do
+    if command -v "${tool}" &>/dev/null ||
+      (cd "${HOME}" && "${mise_bin}" which "${tool}" &>/dev/null); then
+      log "${tool} installed"
+    else
+      warn "${tool} not found"
+    fi
+  done
+
+  if [[ -x "${mise_bin}" ]]; then
+    info "$(cd "${HOME}" && "${mise_bin}" exec -- nvim --version 2>/dev/null | head -1)"
+    info "fzf $(cd "${HOME}" && "${mise_bin}" exec -- fzf --version 2>/dev/null)"
+  fi
+}
+
+main_distrobox() {
+  print_header "Dotfiles Setup - Distrobox"
+
+  # Authenticate once up front; without a TTY (e.g. Claude Code's `!`) sudo
+  # can't prompt and every step below would fail.
+  sudo -v || error "sudo needs a password - run ./setup from a real terminal inside the box"
+
+  install_apt_packages || true
+  setup_mise_system_tools || true
+  setup_symlinks || true
+  set_login_shell || true
+  verify_distrobox || true
+
+  log "Distrobox setup complete - exit and re-enter the box"
+}
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -477,6 +614,11 @@ EOF
 # ============================================================================
 
 main() {
+  if is_container; then
+    main_distrobox
+    return 0
+  fi
+
   print_header "Sway Setup - Fedora Atomic"
 
   check_system || true

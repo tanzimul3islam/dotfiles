@@ -17,7 +17,10 @@ no CI, no build system.
 
 ## Setup (`./setup`)
 
-Fedora Atomic only (`rpm-ostree`). Creates symlinks:
+On Fedora Atomic, it installs packages with `rpm-ostree`. Inside a container
+(`/run/.containerenv`) it takes a CLI-only path instead (`main_distrobox`): apt
+packages, neovim/fzf/k9s through mise's system config at `/etc/mise/config.toml`,
+the symlinks, and zsh as the login shell. Creates symlinks:
 
 | Repo file | Target |
 |---|---|
