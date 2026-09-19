@@ -49,7 +49,6 @@ Run: `./setup` (safe to re-run, skips existing).
 
 LazyVim with ~42 plugins. Key plugins:
 - **Java**: nvim-jdtls, springboot-nvim (`nvim/lua/config/jdtls.lua`)
-- **Copilot**: bound to `C-]` to accept
 - **Zettelkasten**: custom LazyVim spec in `nvim/lua/config/zettelkasten.lua`
 - **Telescope**, **Treesitter**, **conform.nvim**, **snacks.nvim**, **no-neck-pain.nvim**
 - Colorscheme: gruvbox-material.
